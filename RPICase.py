@@ -3,6 +3,7 @@ import csv
 import numpy as np
 from NumericToNominalConverter import NumericToNominalConverter
 
+"""Read in the final_table obtained from the feature_extraction script"""
 with open("tables/final_table.csv",'r') as dest_f:
     data_iter = csv.reader(dest_f,
                            delimiter = ',')
@@ -11,12 +12,19 @@ with open("tables/final_table.csv",'r') as dest_f:
     data = [data for data in data_iter]
 data_array = np.asarray(data, dtype = None)
 
-for type in data_types:
-    if type == 'numeric':
-        for idx in range(0, len(data_types) - 1):
-            if data_types[idx] == 'numeric':
-                print(data_array[:,idx])
-                data_array[:,idx] = NumericToNominalConverter(data_array[:,idx], num_bins=10).convert()
+"""Convert all numeric attributes to nominal (beta)"""
+for i in range(len(data_types) - 1):
+    if data_types[i] == 'numeric':
+        data_array[:,i] = NumericToNominalConverter(data_array[:,i], num_bins=10).convert()
 
-for row in data_array:
-    print(row)
+"""
+    x : features
+    y : classes
+    Todo:
+    Create training- and test data
+    train models (naive bayes, logistic regression, SVM)
+    evaluate models
+    plot ROC curves for each model
+"""
+y = data_array[:, 0]
+x = data_array[:, 1:]
