@@ -4,11 +4,12 @@ import csv
 from SymmetricPair import SymmetricPair
 
 """ stores the names of all columns in the final_table"""
-col_names = ["id", "fixed", "reopened", "reassignments", "assignee_success", "reporter", "reporter_success", "relationship_count",
-             "version", "opening_time", "product", "severity", "severity_increased", "severity_decreased"]
+col_names = ["id", "fixed", "reopened", "reassignments", "assignee_success", "reporter", "reporter_success", "relationship_count"
+    ,"opening_time", "product", "severity", "severity_increased", "severity_decreased", "version"]
 
-feature_types = ['nominal', 'nominal', 'nominal', 'numeric', 'numeric', 'nominal', 'numeric', 'numeric', 'nominal',
-                 'numeric', 'nominal', 'nominal', 'nominal', 'nominal']
+"""stores whether features are nominal or numerical"""
+feature_types = ['nominal', 'nominal', 'nominal', 'numeric', 'numeric', 'nominal', 'numeric', 'numeric',
+                 'numeric', 'nominal', 'nominal', 'nominal', 'nominal', "nominal"]
 
 """stores the final table. The first key of the dictionary is the bug_id,
    the second is the name of the column
@@ -33,7 +34,6 @@ def import_table(tablename, filename):
     """delete the first row, since it contains the header"""
     table.pop(0)
     tables[tablename] = table
-    print("import")
 
 """extracts for each bug_id, whether the bug was fixed or not and whether it was reopened"""
 def extract_status_information():
@@ -61,7 +61,6 @@ def extract_status_information():
         else:
             if "reopened" not in final_table[bug_id].keys():
                 final_table[bug_id]["reopened"] = 0
-        print("status")
 
 
 """extracts for each assignee his success rate. Then for each bug,
@@ -97,6 +96,7 @@ def extract_assignee_information():
         "Store for each bug its reassignment count"
         final_table[k]["reassignments"] = len(bug_assignments[k]) - 1
 
+
 """extracts for each bug its reporter and the reporters success rate"""
 def extract_report_information():
     reporter_bug_count = Counter()
@@ -116,7 +116,8 @@ def extract_report_information():
         reporter_success[k] = float(reporter_fixed_bug_count[k]) / float(reporter_bug_count[k])
 
     for k, v in final_table.items():
-        final_table[k]['reporter_success'] = reporter_success[final_table[k]['reporter']]
+        final_table[k]['reporter_success'] = float(reporter_success[final_table[k]['reporter']])
+
 
 """Extracts for each pair of participants how often they worked together in the past"""
 def extract_participants_relationship_information():
@@ -140,33 +141,36 @@ def extract_participants_relationship_information():
         final_table[k]['relationship_count'] = relationship_count / float(len(v))
 
 """Extracts for each row in a table the value and stores it in the final table"""
-def extract_table_value(table):
+def extract_nominal_value(table):
+    values = []
+    """First store all possible values in a list"""
     for row in tables[table]:
+        if row[1] not in values:
+            values.append(row[1])
+
+    """Store for each value its index"""
+    for row in tables[table]:
+        values.append(row[1])
         bug_id = row[0]
         value = row[1]
-        final_table[bug_id][table] = value
+        final_table[bug_id][table] = values.index(value) + 1
 
+"""Extracts the time a bug was open (buggy)"""
 def extract_opening_time_information():
     bug_status = defaultdict(defaultdict)
 
     for row in tables["status"]:
         bug_id = row[0]
         status = row[1]
-        time = row[2]
+        time = int(row[2])
         bug_status[bug_id][status] = time
 
     for bug, v in bug_status.items():
-        opening_time = 0
-        current_time = 0
-        for status, time in v.items():
-            if status == "NEW":
-                current_time = time
-            elif status != "REOPENED" and status != "ASSIGNED":
-                opening_time += int(time) - int(current_time)
-                current_time = time
-            else:
-                current_time = time
-        final_table[bug]["opening_time"] = opening_time
+        times = sorted(v.values())
+        begin = times[0]
+        end = times[len(times) - 1]
+        final_table[bug]["opening_time"] = end - begin
+
 
 def extract_severity_information():
     bug_severities = defaultdict(list)
@@ -179,7 +183,7 @@ def extract_severity_information():
 
     for k, v in bug_severities.items():
         reference = v[0]
-        final_table[k]["severity"] = reference
+        final_table[k]["severity"] = ordering.index(reference)
         final_table[k]["severity_increased"] = 0
         final_table[k]["severity_decreased"] = 0
         for i in range(1, len(v) - 1):
@@ -188,7 +192,8 @@ def extract_severity_information():
             elif ordering.index(v[i]) < ordering.index(reference):
                 final_table[k]["severity_decreased"] = 1
 
-"""Returns the final table in a format suitable for further processing"""
+
+"""Returns the final table in a merged list format"""
 def get_final_table():
     table = []
     table.append(col_names)
@@ -201,6 +206,7 @@ def get_final_table():
 
     return table
 
+"""exports table to .csv file"""
 def export_table(filename, table):
     with open(filename, "w+") as output:
         writer = csv.writer(output, lineterminator='\n')
@@ -217,19 +223,12 @@ import_table("priority", "tables/priority.csv")
 import_table("product", "tables/product.csv")
 
 extract_status_information()
-print("status")
 extract_assignee_information()
-print("assignee")
 extract_report_information()
-print("report")
 extract_participants_relationship_information()
-print("relat")
-extract_table_value("version")
-print("version")
+extract_nominal_value("version")
 extract_opening_time_information()
-print("time")
-extract_table_value("product")
-print("product")
+extract_nominal_value("product")
 extract_severity_information()
 
 table = get_final_table()
