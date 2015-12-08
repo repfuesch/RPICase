@@ -73,7 +73,7 @@ def extract_assignee_information():
 
     "Count bug and success count for each assignee. Keep track of the reassignment count"
     for row in tables["assignees"]:
-        assignee = row[1]
+        assignee = str(row[1]).strip(' ')
         bug_id = row[0]
         bug_participants[bug_id].append(assignee)
         assigned[assignee] += 1
@@ -90,11 +90,13 @@ def extract_assignee_information():
         avg_success = 0.0
         for assignee in bug_assignments[k]:
             avg_success += success_rates[assignee]
+
         avg_success /= len(bug_assignments[k])
-        final_table[k]["assignee_success"] = avg_success
+        final_table[k]["assignee_success"] = round(avg_success, 1)
 
         "Store for each bug its reassignment count"
         final_table[k]["reassignments"] = len(bug_assignments[k]) - 1
+
 
 
 """extracts for each bug its reporter and the reporters success rate"""
@@ -116,7 +118,7 @@ def extract_report_information():
         reporter_success[k] = float(reporter_fixed_bug_count[k]) / float(reporter_bug_count[k])
 
     for k, v in final_table.items():
-        final_table[k]['reporter_success'] = float(reporter_success[final_table[k]['reporter']])
+        final_table[k]['reporter_success'] = round(float(reporter_success[final_table[k]['reporter']]), 1)
 
 
 """Extracts for each pair of participants how often they worked together in the past"""
@@ -138,7 +140,7 @@ def extract_participants_relationship_information():
                     key = SymmetricPair(v[i], v[j])
                     relationship_count += participant_count[key]
 
-        final_table[k]['relationship_count'] = relationship_count / float(len(v))
+        final_table[k]['relationship_count'] = round(relationship_count / float(len(v)))
 
 """Extracts for each row in a table the value and stores it in the final table"""
 def extract_nominal_value(table):
@@ -169,7 +171,7 @@ def extract_opening_time_information():
         times = sorted(v.values())
         begin = times[0]
         end = times[len(times) - 1]
-        final_table[bug]["opening_time"] = end - begin
+        final_table[bug]["opening_time"] = round((end - begin) / (3600 * 24))
 
 
 def extract_severity_information():
@@ -199,6 +201,7 @@ def get_final_table():
     table.append(col_names)
     table.append(feature_types)
     for key, value in final_table.items():
+        print(value)
         row = []
         for k in col_names:
             row.append(value[k])

@@ -1,10 +1,12 @@
 __author__ = 'flo'
+
 import csv
 import numpy as np
 from NumericToNominalConverter import NumericToNominalConverter
-import sklearn.naive_bayes as nb
+from sklearn.cross_validation import train_test_split
+from PredictionModel import *
 
-"""Read in the final_table obtained from the feature_extraction script"""
+#read the final table obtained from the features_extraction.py script
 with open("tables/final_table.csv",'r') as dest_f:
     data_iter = csv.reader(dest_f, delimiter = ',')
     header = next(data_iter)
@@ -12,44 +14,42 @@ with open("tables/final_table.csv",'r') as dest_f:
     data = [data for data in data_iter]
 data_array = np.array(data, dtype = float)
 
-"""Convert all numeric attributes to nominal (beta)"""
+if len(data_array) % 2 != 0:
+    np.delete(data_array, 1, 0)
+
+#Naive Bayes
+
+#Convert all numeric attributes to nominal (beta)
+nominal_array = data_array
 for i in range(len(data_types) - 1):
     if data_types[i] == 'numeric':
-        data_array[:,i] = NumericToNominalConverter(data_array[:,i], num_bins=10).convert()
+        nominal_array[:,i] = NumericToNominalConverter(nominal_array[:,i], num_bins=30).convert()
 
-"""
-    Todo:
-    Create training- and test data
-    train models (naive bayes, logistic regression, SVM)
-    evaluate models
-    plot ROC curves for each model
-"""
+#training and test data for naive bayes
+x_train, x_test, y_train, y_test = train_test_split(nominal_array[:, 2:], nominal_array[:, 1], test_size=.5, random_state=0)
 
-"""Naive Bayes"""
-msk = np.random.rand(len(data_array)) < 0.7
-training_set = data_array[msk]
-test_set = data_array[~msk]
-y_train = training_set[:, 1]
-x_train = training_set[:, 2:]
-
-y_test = test_set[:, 1]
-x_test = test_set[:, 2:]
-
-bayes = nb.MultinomialNB()
+bayes = NaiveBayes()
 bayes.fit(x_train, y_train)
-
-y_pred = bayes.predict(x_test)
-pred_wrong = (y_test != y_pred).sum()
-print("Accuracy: " + str(float(len(y_test) - pred_wrong) / float(len(y_test))))
-pos_samples = (y_test == 1).sum()
-neg_samples = len(y_test) - pos_samples
-
-if neg_samples > pos_samples:
-    print("Base rate: " + str(float(neg_samples) / float(len(y_test))))
-else:
-    print("Base rate: " + str(float(pos_samples) / float(len(y_test))))
+bayes.predict(x_test, y_test)
+print("Accuracy Bayes: " + str(bayes.get_accuracy()))
 
 
-"""SVM"""
+#training and test data for logistic regression
+x_train, x_test, y_train, y_test = train_test_split(data_array[:, 2:], data_array[:, 1], test_size=.5, random_state=0)
 
-"""Logistic regression"""
+
+#logistic regression
+regression = LogisticRegression()
+regression.fit(x_train, y_train)
+regression.predict(x_test, y_test)
+print("Accuracy Logistic Regression: " + str(regression.get_accuracy()))
+
+
+#print base rate
+print("Base rate: " + str(regression.get_base_rate()))
+
+#plot roc curves
+fpr, tpr, auc = bayes.get_roc()
+plot_roc(fpr, tpr, auc)
+fpr, tpr, auc = regression.get_roc()
+plot_roc(fpr, tpr, auc)
