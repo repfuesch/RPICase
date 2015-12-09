@@ -23,7 +23,7 @@ if len(data_array) % 2 != 0:
 nominal_array = data_array
 for i in range(len(data_types) - 1):
     if data_types[i] == 'numeric':
-        nominal_array[:,i] = NumericToNominalConverter(nominal_array[:,i], num_bins=30).convert()
+        nominal_array[:,i] = NumericToNominalConverter(nominal_array[:,i], num_bins=100).convert()
 
 #training and test data for naive bayes
 x_train, x_test, y_train, y_test = train_test_split(nominal_array[:, 2:], nominal_array[:, 1], test_size=.5, random_state=0)

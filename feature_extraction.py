@@ -5,11 +5,13 @@ from SymmetricPair import SymmetricPair
 
 """ stores the names of all columns in the final_table"""
 col_names = ["id", "fixed", "reopened", "reassignments", "assignee_success", "reporter", "reporter_success", "relationship_count"
-    ,"opening_time", "product", "severity", "severity_increased", "severity_decreased", "version"]
+    ,"opening_time", "product", "severity", "severity_increased", "severity_decreased", "version", "component", "operating_system",
+             "edits", "edit_length"]
 
 """stores whether features are nominal or numerical"""
 feature_types = ['nominal', 'nominal', 'nominal', 'numeric', 'numeric', 'nominal', 'numeric', 'numeric',
-                 'numeric', 'nominal', 'nominal', 'nominal', 'nominal', "nominal"]
+                 'numeric', 'nominal', 'nominal', 'nominal', 'nominal', "nominal", 'nominal', "nominal",
+                 'numeric', 'numeric']
 
 """stores the final table. The first key of the dictionary is the bug_id,
    the second is the name of the column
@@ -140,7 +142,7 @@ def extract_participants_relationship_information():
                     key = SymmetricPair(v[i], v[j])
                     relationship_count += participant_count[key]
 
-        final_table[k]['relationship_count'] = round(relationship_count / float(len(v)))
+        final_table[k]['relationship_count'] = round(relationship_count)
 
 """Extracts for each row in a table the value and stores it in the final table"""
 def extract_nominal_value(table):
@@ -194,6 +196,28 @@ def extract_severity_information():
             elif ordering.index(v[i]) < ordering.index(reference):
                 final_table[k]["severity_decreased"] = 1
 
+def extract_short_desc_information():
+
+    bug_descriptions = defaultdict(list)
+    for row in tables["short_desc"]:
+        if len(row) == 4:
+            bug_id = row[0]
+            text = row[1]
+            count = len(text)
+            bug_descriptions[bug_id].append(count)
+
+    for k in final_table.keys():
+        if k in bug_descriptions.keys():
+            final_table[k]["edits"] = len(bug_descriptions[k])
+
+            word_count = 0
+            for text in bug_descriptions[k]:
+                word_count += len(str(text).split(' '))
+
+            final_table[k]["edit_length"] = float(word_count) / len(bug_descriptions[k])
+        else:
+            final_table[k]["edits"] = 0
+            final_table[k]["edit_length"] = 0
 
 """Returns the final table in a merged list format"""
 def get_final_table():
@@ -201,7 +225,6 @@ def get_final_table():
     table.append(col_names)
     table.append(feature_types)
     for key, value in final_table.items():
-        print(value)
         row = []
         for k in col_names:
             row.append(value[k])
@@ -224,6 +247,9 @@ import_table("version", "tables/version.csv")
 import_table("severity", "tables/severity.csv")
 import_table("priority", "tables/priority.csv")
 import_table("product", "tables/product.csv")
+import_table("operating_system", "tables/op_sys.csv")
+import_table("component", "tables/component.csv")
+import_table("short_desc", "tables/short_desc.csv")
 
 extract_status_information()
 extract_assignee_information()
@@ -232,7 +258,11 @@ extract_participants_relationship_information()
 extract_nominal_value("version")
 extract_opening_time_information()
 extract_nominal_value("product")
+extract_nominal_value("operating_system")
+extract_nominal_value("component")
+extract_short_desc_information()
 extract_severity_information()
+
 
 table = get_final_table()
 export_table("tables/final_table.csv", table)
