@@ -60,6 +60,17 @@ class NaiveBayes(PredictionModel):
         self.y_score = self.classifier.predict_proba(x)[:, 1]
         return super(NaiveBayes, self).predict(x, y)
 
+
+class GaussianNaiveBayes(PredictionModel):
+
+    def __init__(self):
+        self.classifier = nb.GaussianNB()
+        super(GaussianNaiveBayes, self)
+
+    def predict(self, x, y):
+        self.y_score = self.classifier.predict_proba(x)[:, 1]
+        return super(GaussianNaiveBayes, self).predict(x, y)
+
 class LogisticRegression(PredictionModel):
 
     def __init__(self):
@@ -70,11 +81,21 @@ class LogisticRegression(PredictionModel):
         self.y_score = self.classifier.predict_proba(x)[:, 1]
         return super(LogisticRegression, self).predict(x, y)
 
+class SVC(PredictionModel):
+
+    def __init__(self):
+        self.classifier = svm.SVC(kernel='linear', probability=True)
+        super(SVC, self)
+
+    def predict(self, x, y):
+        self.y_score = self.classifier.decision_function(x)
+        return super(SVC, self).predict(x, y)
+
 
 # Plot of a ROC curve for one class
-def plot_roc(fpr, tpr, auc):
+def plot_roc(fpr, tpr, auc, header):
     plt.figure()
-    plt.plot(fpr, tpr, label='ROC curve (area = %0.2f)' % auc)
+    plt.plot(fpr, tpr, label='ROC curve ' + str(header) + ' (area = %0.2f)' % auc)
     plt.plot([0, 1], [0, 1], 'k--')
     plt.xlim([0.0, 1.0])
     plt.ylim([0.0, 1.05])

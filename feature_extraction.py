@@ -5,13 +5,17 @@ from SymmetricPair import SymmetricPair
 
 """ stores the names of all columns in the final_table"""
 col_names = ["id", "fixed", "reopened", "reassignments", "assignee_success", "reporter", "reporter_success", "relationship_count"
-    ,"opening_time", "product", "severity", "severity_increased", "severity_decreased", "version", "component", "operating_system",
-             "edits", "edit_length"]
+    ,"opening_time", "product", "severity", "version", "component", "operating_system",
+             "edits", "edit_length", "reporter_reputation"]
 
 """stores whether features are nominal or numerical"""
 feature_types = ['nominal', 'nominal', 'nominal', 'numeric', 'numeric', 'nominal', 'numeric', 'numeric',
-                 'numeric', 'nominal', 'nominal', 'nominal', 'nominal', "nominal", 'nominal', "nominal",
-                 'numeric', 'numeric']
+                 'numeric', 'nominal', 'nominal', "nominal", 'nominal', "nominal",
+                 'numeric', 'numeric', 'numeric']
+
+roles = ['id', 'label', 'attribute', 'attribute', 'attribute', 'attribute', 'attribute', 'attribute', 'attribute'
+         ,'attribute', 'attribute', 'attribute', 'attribute', 'attribute', 'attribute'
+         ,'attribute','attribute']
 
 """stores the final table. The first key of the dictionary is the bug_id,
    the second is the name of the column
@@ -121,6 +125,7 @@ def extract_report_information():
 
     for k, v in final_table.items():
         final_table[k]['reporter_success'] = round(float(reporter_success[final_table[k]['reporter']]), 1)
+        final_table[k]['reporter_reputation'] = reporter_bug_count[final_table[k]['reporter']]
 
 
 """Extracts for each pair of participants how often they worked together in the past"""
@@ -188,13 +193,6 @@ def extract_severity_information():
     for k, v in bug_severities.items():
         reference = v[0]
         final_table[k]["severity"] = ordering.index(reference)
-        final_table[k]["severity_increased"] = 0
-        final_table[k]["severity_decreased"] = 0
-        for i in range(1, len(v) - 1):
-            if ordering.index(v[i]) > ordering.index(reference):
-                final_table[k]["severity_increased"] = 1
-            elif ordering.index(v[i]) < ordering.index(reference):
-                final_table[k]["severity_decreased"] = 1
 
 def extract_short_desc_information():
 
@@ -203,8 +201,7 @@ def extract_short_desc_information():
         if len(row) == 4:
             bug_id = row[0]
             text = row[1]
-            count = len(text)
-            bug_descriptions[bug_id].append(count)
+            bug_descriptions[bug_id].append(text)
 
     for k in final_table.keys():
         if k in bug_descriptions.keys():
@@ -214,7 +211,7 @@ def extract_short_desc_information():
             for text in bug_descriptions[k]:
                 word_count += len(str(text).split(' '))
 
-            final_table[k]["edit_length"] = float(word_count) / len(bug_descriptions[k])
+            final_table[k]["edit_length"] = float(word_count) / float(len(bug_descriptions[k]))
         else:
             final_table[k]["edits"] = 0
             final_table[k]["edit_length"] = 0
@@ -224,6 +221,7 @@ def get_final_table():
     table = []
     table.append(col_names)
     table.append(feature_types)
+    table.append(roles)
     for key, value in final_table.items():
         row = []
         for k in col_names:
