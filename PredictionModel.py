@@ -1,10 +1,13 @@
-__author__ = 'flo'
-
 from sklearn.metrics import roc_curve, auc
 import matplotlib.pyplot as plt
 import sklearn.naive_bayes as nb
 import sklearn.svm as svm
 import sklearn.linear_model.logistic as log
+
+"""
+This class represents our prediction model.
+It encapsulates logic for training, testing and evaluation.
+"""
 
 class PredictionModel(object):
 
@@ -21,6 +24,7 @@ class PredictionModel(object):
 
         self.y_test = y
         self.y_predicted = self.classifier.predict(x)
+        self.y_score = self.classifier.predict_proba(x)[:, 1]
         return self.y_predicted
 
     def get_accuracy(self):
@@ -92,7 +96,7 @@ class SVC(PredictionModel):
         return super(SVC, self).predict(x, y)
 
 
-# Plot of a ROC curve for one class
+# Plot of an ROC curve for a classifier and a binary class label
 def plot_roc(fpr, tpr, auc, header):
     plt.figure()
     plt.plot(fpr, tpr, label='ROC curve ' + str(header) + ' (area = %0.2f)' % auc)

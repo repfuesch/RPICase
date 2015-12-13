@@ -3,32 +3,35 @@ from collections import Counter
 import csv
 from SymmetricPair import SymmetricPair
 
-""" stores the names of all columns in the final_table"""
+"""
+This script constructs the features for our prediction model
+"""
+
+#stores the names of all columns in the final_table
 col_names = ["id", "fixed", "reopened", "reassignments", "assignee_success", "reporter", "reporter_success", "relationship_count"
     ,"opening_time", "product", "severity", "version", "component", "operating_system",
              "edits", "edit_length", "reporter_reputation"]
 
-"""stores whether features are nominal or numerical"""
+#stores whether features are nominal or numerical
 feature_types = ['nominal', 'nominal', 'nominal', 'numeric', 'numeric', 'nominal', 'numeric', 'numeric',
                  'numeric', 'nominal', 'nominal', "nominal", 'nominal', "nominal",
                  'numeric', 'numeric', 'numeric']
 
+#stores the roles of the features
 roles = ['id', 'label', 'attribute', 'attribute', 'attribute', 'attribute', 'attribute', 'attribute', 'attribute'
          ,'attribute', 'attribute', 'attribute', 'attribute', 'attribute', 'attribute'
          ,'attribute','attribute']
 
-"""stores the final table. The first key of the dictionary is the bug_id,
-   the second is the name of the column
-"""
+#stores the final table. The first key of the dictionary is the bug_id, the second is the name of the column
 final_table = defaultdict(defaultdict)
 
-"""stores all tables from which we want to extract features"""
+#stores all tables from which we want to extract features
 tables = defaultdict(list)
 
-"""stores for each bug the ids of the participants (assignees, reporter)"""
+#stores for each bug the ids of the participants (assignees, reporter)
 bug_participants = defaultdict(list)
 
-"""imports a table from the given filename and stores it in 'tables' under the name 'tablename'"""
+#imports a table from the given filename and stores it in 'tables' under the name 'tablename'
 def import_table(tablename, filename):
     table = list()
     for line in open(filename, mode='r').readlines():
@@ -37,12 +40,13 @@ def import_table(tablename, filename):
             row.append(value.strip("\n"))
         table.append(row)
 
-    """delete the first row, since it contains the header"""
+    #delete the first row, since it contains the header
     table.pop(0)
     tables[tablename] = table
 
-"""extracts for each bug_id, whether the bug was fixed or not and whether it was reopened"""
+#extracts for each bug_id, whether the bug was fixed or not and whether it was reopened
 def extract_status_information():
+
     """First store the id of all bugs that were fixed"""
     fixed_bugs = dict()
     for row in tables["resolution"]:
@@ -50,17 +54,16 @@ def extract_status_information():
         if row[1] == "FIXED":
             fixed_bugs[bug_id] = True
 
-    """For all bugs that were tracked in the status table, check if they were fixed or reopened"""
+    #For all bugs that were tracked in the status table, check if they were fixed or reopened
     for row in tables["status"]:
         bug_id = row[0]
         final_table[bug_id]["id"] = bug_id
-        "Set whether bug was fixed"
+
         if bug_id in fixed_bugs.keys():
             final_table[bug_id]["fixed"] = 1
         else:
             final_table[bug_id]["fixed"] = 0
 
-        "Set reopened status"
         status = row[1]
         if status == "REOPENED":
             final_table[bug_id]["reopened"] = 1
@@ -69,15 +72,15 @@ def extract_status_information():
                 final_table[bug_id]["reopened"] = 0
 
 
-"""extracts for each assignee his success rate. Then for each bug,
-   the average success rates of its assignees is calculated"""
+#extracts for each assignee his success rate. Then for each bug,
+#the average success rates of its assignees is calculated
 def extract_assignee_information():
     assigned = Counter()
     resolved = Counter()
     success_rates = dict()
     bug_assignments = defaultdict(list)
 
-    "Count bug and success count for each assignee. Keep track of the reassignment count"
+    #Count bug and success count for each assignee. Keep track of the reassignment count
     for row in tables["assignees"]:
         assignee = str(row[1]).strip(' ')
         bug_id = row[0]
@@ -87,11 +90,11 @@ def extract_assignee_information():
             resolved[assignee] += 1
         bug_assignments[bug_id].append(assignee)
 
-    "Calculate success rate"
+    #Calculate success rate
     for k, v in assigned.items():
         success_rates[k] = float(resolved[k]) / float(v)
 
-    "Calculate for each bug, the average success rates of all assignees"
+    #Calculate for each bug, the average success rates of all assignees
     for k, v in final_table.items():
         avg_success = 0.0
         for assignee in bug_assignments[k]:
@@ -100,12 +103,12 @@ def extract_assignee_information():
         avg_success /= len(bug_assignments[k])
         final_table[k]["assignee_success"] = round(avg_success, 1)
 
-        "Store for each bug its reassignment count"
+        #Store for each bug its reassignment count
         final_table[k]["reassignments"] = len(bug_assignments[k]) - 1
 
 
 
-"""extracts for each bug its reporter and the reporters success rate"""
+#extracts for each bug its reporter and the reporters success rate
 def extract_report_information():
     reporter_bug_count = Counter()
     reporter_fixed_bug_count = Counter()
@@ -128,7 +131,7 @@ def extract_report_information():
         final_table[k]['reporter_reputation'] = reporter_bug_count[final_table[k]['reporter']]
 
 
-"""Extracts for each pair of participants how often they worked together in the past"""
+#Extracts for each pair of participants how often they worked together in the past
 def extract_participants_relationship_information():
     participant_count = defaultdict(int)
 
@@ -149,7 +152,7 @@ def extract_participants_relationship_information():
 
         final_table[k]['relationship_count'] = round(relationship_count)
 
-"""Extracts for each row in a table the value and stores it in the final table"""
+#Extracts for each row in a table the value and stores its index in the final table
 def extract_nominal_value(table):
     values = []
     """First store all possible values in a list"""
@@ -159,12 +162,11 @@ def extract_nominal_value(table):
 
     """Store for each value its index"""
     for row in tables[table]:
-        values.append(row[1])
         bug_id = row[0]
         value = row[1]
         final_table[bug_id][table] = values.index(value) + 1
 
-"""Extracts the time a bug was open (buggy)"""
+#extracts for each bug the time it was open (in days)
 def extract_opening_time_information():
     bug_status = defaultdict(defaultdict)
 
@@ -180,20 +182,7 @@ def extract_opening_time_information():
         end = times[len(times) - 1]
         final_table[bug]["opening_time"] = round((end - begin) / (3600 * 24))
 
-
-def extract_severity_information():
-    bug_severities = defaultdict(list)
-    ordering = ["trivial", "minor", "enhancement", "normal", "major", "critical", "blocker"]
-
-    for row in tables["severity"]:
-        bug_id = row[0]
-        severity = row[1]
-        bug_severities[bug_id].append(str(severity).lower())
-
-    for k, v in bug_severities.items():
-        reference = v[0]
-        final_table[k]["severity"] = ordering.index(reference)
-
+#extracts for each bug how often it was edited and the average length of those edits
 def extract_short_desc_information():
 
     bug_descriptions = defaultdict(list)
@@ -216,7 +205,7 @@ def extract_short_desc_information():
             final_table[k]["edits"] = 0
             final_table[k]["edit_length"] = 0
 
-"""Returns the final table in a merged list format"""
+#returns the final table in a list format
 def get_final_table():
     table = []
     table.append(col_names)
@@ -230,7 +219,7 @@ def get_final_table():
 
     return table
 
-"""exports table to .csv file"""
+#exports the table to a .csv file
 def export_table(filename, table):
     with open(filename, "w+") as output:
         writer = csv.writer(output, lineterminator='\n')
@@ -259,7 +248,7 @@ extract_nominal_value("product")
 extract_nominal_value("operating_system")
 extract_nominal_value("component")
 extract_short_desc_information()
-extract_severity_information()
+extract_nominal_value("severity")
 
 
 table = get_final_table()

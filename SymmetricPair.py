@@ -1,5 +1,9 @@
-__author__ = 'flo'
 import hashlib
+
+"""
+This class represents a pair of objects that can be used in a dictionary to uniquely identify
+the pair, such that key(a, b) = key(b ,a)
+"""
 
 class SymmetricPair:
 

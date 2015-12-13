@@ -1,11 +1,13 @@
-__author__ = 'flo'
-
 import csv
 import numpy as np
 from sklearn.cross_validation import train_test_split
 from PredictionModel import *
 
-#read the final table obtained from the features_extraction.py script
+"""
+This is the main script in which we train and evaluate our models on the features we constructed
+"""
+
+#reads the final table obtained from the features_extraction.py script
 def read_csv(filename):
     with open(filename,'r') as dest_f:
         data_iter = csv.reader(dest_f, delimiter = ',')
@@ -17,9 +19,8 @@ def read_csv(filename):
 
     return data_array, data_types, roles
 
-
+#splits the data into two tables. One for the nominal and one for the numeric attributes
 def split_data(array, types, roles):
-
     numeric = []
     nominal = []
     for row in array:
@@ -40,7 +41,6 @@ def split_data(array, types, roles):
     return np.array(numeric), np.array(nominal)
 
 
-
 data, types, roles = read_csv("tables/final_table.csv")
 numeric, nominal = split_data(data, types, roles)
 
@@ -52,7 +52,7 @@ bayes_nominal.fit(x_train, y_train)
 numeric_prediction = bayes_nominal.predict(x_test, y_test)
 print("Accuracy Gaussian Bayes: " + str(bayes_nominal.get_accuracy()))
 
-#training and test data for numeric models
+#training and test data for the numeric models
 x_train, x_test, y_train, y_test = train_test_split(numeric[:, 2:], numeric[:, 1], test_size=.3, random_state=0)
 
 bayes_gaussian = GaussianNaiveBayes()
@@ -66,16 +66,14 @@ regression.fit(x_train, y_train)
 regressionPrediction = regression.predict(x_test, y_test)
 print("Accuracy Logistic Regression: " + str(regression.get_accuracy()))
 
-#reduce data_set for svc
-x_train, x_test, y_train, y_test = train_test_split(numeric[:10000, 2:], numeric[:10000, 1], test_size=.3, random_state=0)
-"""
+
 #Support Vector Classification
 svc = SVC()
 svc.fit(x_train, y_train)
 scv_prediction = svc.predict(x_test, y_test)
 print("Accuracy SVC: " + str(svc.get_accuracy()))
-"""
-#print base rate
+
+#print the base rate
 print("Base rate: " + str(regression.get_base_rate()))
 
 #plot roc curves
@@ -85,7 +83,5 @@ fpr, tpr, auc = bayes_gaussian.get_roc()
 plot_roc(fpr, tpr, auc, "Bayes Gaussian")
 fpr, tpr, auc = regression.get_roc()
 plot_roc(fpr, tpr, auc, "Logistic Regression")
-"""
 fpr, tpr, auc = svc.get_roc()
-plot_roc(fpr, tpr, auc)
-"""
+plot_roc(fpr, tpr, auc, "SVC")
